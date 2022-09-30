@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Result{% endblock %}
+
+
+{% block content %}
+
+  <legend class="border-bottom mb-4" style="text-align: center;">Search Results</legend>  
+    
+  
+{% for note in notes %}
+<div class="card border-secondary mb-3 text-white" style=" max-width: 70rem; margin:auto; padding: 10px; top: 10px;">
+      <a href="{% url 'note-detail' note.id %}">
+    <div class="card-header">
+      {% if note.title is not None %}
+      <div class="card-title" style="font-size : 18px; font-weight: bold;">{{ note.title }}</div>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <p class="card-text" style="font-size : 15px;">{{ note.content|truncatewords:50 }}</p>
+      <p class="text-muted" style="font-size: 12px; text-align: right; margin-top:0px; margin-bottom: 0px;">{{ note.date_posted|date:"M d Y" }}</p>
+    </div>
+    </a>
+  </div>
+{% endfor %}
+{% endblock %}
