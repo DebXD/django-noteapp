@@ -3,12 +3,24 @@
 {% block title %}Update{% endblock %}
 
 {% block content%}
-<form action="" method="POST">
+<form action="" method="POST" name="NoteUpdateForm">
     {% csrf_token %}
         
         <fieldset class="form-group">
             <legend class="border-bottom mb-4" style="text-align: center;">Update Note</legend>
-            {{ form|crispy }}
+            
+                  <div class="form-group">
+                    <label  class="form-label mt-4">Title</label>
+                    <input type="text" class="form-control" name="title" value="{{note.title}}">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="exampleTextarea" class="form-label mt-4">Content</label>
+                    <textarea class="form-control" id="exampleTextarea" name="content" rows="10">{{ note.content }}</textarea>
+                  </div>
+            
+           
+            
         </fieldset>
         <div>
             <button type="submit" style="margin-top: 20px;" class="btn btn-info">Update</button><br>

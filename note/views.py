@@ -1,11 +1,13 @@
 
 from django.shortcuts import render, redirect
-from .models import Note
+from .models import Note, decrypt_note, decrypt_single_note
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .forms import CreateNoteForm, UpdateNoteForm
+from .forms import CreateNoteForm
 
 from django.http import HttpResponseRedirect
+from cryptography.fernet import Fernet
+
 def home(request):
     notes = [
         {
@@ -32,8 +34,8 @@ def home(request):
     else:
         user = request.user.id
         notes = Note.objects.filter(user_id=user).order_by('-date_posted')# using filter method to retrive multiple objects in a query set..... #use get method to retrive only one object
-
-        context = {'notes': notes}                                        
+        notelist = decrypt_note(notes, user)
+        context = {'notes': notelist}                                        
         return render(request, 'note/home.html', context)
 
 def note_detail(request, id):
@@ -41,7 +43,9 @@ def note_detail(request, id):
 
         user_notes = Note.objects.filter(user_id=request.user.id)
         note = user_notes.get(id=id)
-        context = { 'note' : note}
+        user = User.objects.get(id=request.user.id)
+        dec_note = decrypt_single_note(note, user)
+        context = { 'note' : dec_note}
         return render(request, 'note/note_detail.html', context)
     else:
         messages.warning(request, 'Login to get Your Note!')
@@ -55,14 +59,23 @@ def note_create(request):
             if form.is_valid():
                 title = form.cleaned_data.get('title')
                 content = form.cleaned_data.get('content')
+                if title == '' and content == '':
+                    messages.warning(request, 'No Text Entered')
+                    return redirect('home')
+                else:
+                    user_obj = User.objects.get(id=request.user.id)
+                    key = Fernet.generate_key()
 
-                user_obj = User.objects.get(id=request.user.id)
-                note_obj = Note(title=title, content=content, user_id=user_obj)
-                note_obj.save()
-                messages.success(request, 'Your note has been saved!')
-                return redirect('home')
+                    f = Fernet(key)
+                    enc_title = f.encrypt(title.encode())
+                    enc_content = f.encrypt(content.encode())
+
+                    note_obj = Note(title=enc_title, content=enc_content, key=key, user_id=user_obj)
+                    note_obj.save()
+                    messages.success(request, 'Your note has been saved!')
+                    return redirect('home')
             else:
-                messages.warning(request, 'There is something wrong with your form!')
+                messages.warning(request, 'There is something wrong!')
                 return redirect('home')
 
         else:
@@ -76,24 +89,31 @@ def note_create(request):
 def note_update(request, id):
     if request.user.is_authenticated:
         if request.method == 'POST':
-            form = UpdateNoteForm(request.POST)
-            if form.is_valid():
-                    updated_title = form.cleaned_data.get('title')
-                    updated_content = form.cleaned_data.get('content')
-
-                    note_obj = Note.objects.get(id=id)
-                    note_obj.title = updated_title
-                    note_obj.content = updated_content
-                    note_obj.save()
-                    messages.success(request, 'Your note has been Updated!')
-                    return redirect(f'/note/{id}/')
-
-            else:
-                messages.warning(request, 'There is something wrong with your form!')
+            updated_title = request.POST.get('title')
+            updated_content = request.POST.get('content')
+            if updated_title == '' and updated_content == '':
+                messages.warning(request, 'No Text Entered!')
                 return redirect('home')
+            else:
+                note_obj = Note.objects.get(id=id)
+                user_obj = User.objects.get(id=request.user.id)
+                f = Fernet(note_obj.key)
+                enc_title = f.encrypt(updated_title.encode())
+                enc_content = f.encrypt(updated_content.encode())
+                note_obj.title=enc_title
+                note_obj.content=enc_content
+                note_obj.save()
+ 
+                    #note_obj = Note(title=enc_title, content=enc_content, key=note_obj.key, user_id=user_obj)
+                    #note_obj.save()
+                messages.success(request, 'Your note has been Updated!')
+                return redirect(f'/note/{id}/')
+
         else:
-            form = UpdateNoteForm(instance=Note.objects.get(id=id))
-            context = {'form': form}
+            note=Note.objects.get(id=id)
+            user = User.objects.get(id=request.user.id)
+            dec_note = decrypt_single_note(note,user)
+            context = { 'note':dec_note }
             return render(request, 'note/note_update.html', context)
     else:
         messages.warning(request, 'Login to Update')
@@ -120,9 +140,13 @@ def note_search(request):
             new_notelist = []
             
             for note in user_notes:
-                title = note.title
+                key = note.key
+                f = Fernet(key)
+
+                title = f.decrypt(note.title).decode()
+                content = f.decrypt(note.content).decode()
                 query = query.lower()
-                content = note.content
+                
 
                 if title is  None:
                     whole_note = content.lower()
@@ -148,8 +172,8 @@ def note_search(request):
                 messages.warning(request, 'No Results Found!')
                 return redirect('home')
             else:
-               
-                context = { 'notes' : new_notelist}       
+                dec_notelist = decrypt_note(new_notelist, request.user.id)
+                context = { 'notes' : dec_notelist}       
                 return render(request, 'note/search_result.html', context)
 
 def about(request):

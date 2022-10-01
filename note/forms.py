@@ -10,10 +10,4 @@ class CreateNoteForm(forms.Form):
         model = Note
         fields = ['title', 'content']
 
-class UpdateNoteForm(forms.ModelForm):
-
-    class Meta():
-        model = Note
-        fields = ['title', 'content']
-
     
