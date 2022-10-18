@@ -5,45 +5,27 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from .forms import CreateNoteForm
 
-from django.http import HttpResponseRedirect
 from cryptography.fernet import Fernet
 
 def home(request):
-    notes = [
-        {
-            'id' : '1', 
-        'title' : 'How to Capitalize the First Letter in a Word With CSS',
-        'content' : "If content is put in with all CAPS, and the front-end should be Capitalized, using capitalize won’t work, as Chris points out. How can all caps be changed into capitalized words with CSS, and without going into the CMS and changing the text? I tried wrapping the text in a parent span, lowercasing that, than capitalizing the child span, but that didn’t work for obvious reasons – but it was one of those ‘might as well try it’ ideas.",
-        'date_posted' : 'Sep 28, 2002'
-        },
-        {
-            'id' : '2',
-            'title' : ' title of note 2',
-            'content' : 'this is content 2',
-             'date_posted' : 'Sep 28, 2009'
-        },
-        {
-            'id' : '3', 
-        'title' : 'this is a note 3',
-        'content' : 'this is content 3',
-        'date_posted' : 'Sep 34, 2004'
-        },
-    ]
+
     if not request.user.is_authenticated:
         return redirect('login')
     else:
         user = request.user.id
-        notes = Note.objects.filter(user_id=user).order_by('-date_posted')# using filter method to retrive multiple objects in a query set..... #use get method to retrive only one object
+        notes = Note.objects.filter(user_id=user).order_by('-date_posted').select_related()# using filter method to retrive multiple objects in a query set..... 
+                                                                                            #use get method to retrive only one object
         notelist = decrypt_note(notes, user)
         context = {'notes': notelist}                                        
         return render(request, 'note/home.html', context)
 
 def note_detail(request, id):
-    if request.user.is_authenticated:
+    user = request.user
+    if user.is_authenticated:
 
-        user_notes = Note.objects.filter(user_id=request.user.id)
+        user_notes = Note.objects.filter(user_id=user.id).select_related()
         note = user_notes.get(id=id)
-        user = User.objects.get(id=request.user.id)
+        user = user_notes.filter(user_id=user.id).first()
         dec_note = decrypt_single_note(note, user)
         context = { 'note' : dec_note}
         return render(request, 'note/note_detail.html', context)
@@ -95,8 +77,7 @@ def note_update(request, id):
                 messages.warning(request, 'No Text Entered!')
                 return redirect('home')
             else:
-                note_obj = Note.objects.get(id=id)
-                user_obj = User.objects.get(id=request.user.id)
+                note_obj = Note.objects.filter(id=id).select_related().first()
                 f = Fernet(note_obj.key)
                 enc_title = f.encrypt(updated_title.encode())
                 enc_content = f.encrypt(updated_content.encode())
@@ -136,15 +117,14 @@ def note_search(request):
             messages.warning(request, 'No query text')
             return redirect('home')
         else:
-            user_notes = Note.objects.filter(user_id=request.user.id)
+            user_notes = Note.objects.filter(user_id=request.user.id).select_related()
             new_notelist = []
             
             for note in user_notes:
-                key = note.key
+                key = bytes(note.key)# convert the memoryview type to bytes
                 f = Fernet(key)
-
-                title = f.decrypt(note.title).decode()
-                content = f.decrypt(note.content).decode()
+                title = f.decrypt(bytes(note.title)).decode()# convert the memoryview type to bytes
+                content = f.decrypt(bytes(note.content)).decode()# convert the memoryview type to bytes
                 query = query.lower()
                 
 

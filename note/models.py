@@ -19,18 +19,19 @@ class Note(models.Model):
 def decrypt_note(notes, user):
     notelist = []
     for note in notes:
-        key = note.key
+        key = bytes(note.key)# convert the memoryview type to bytes
         f = Fernet(key)
-        dec_title = f.decrypt(note.title).decode()
-        dec_content = f.decrypt(note.content).decode()
+
+        dec_title = f.decrypt(bytes(note.title)).decode()
+        dec_content = f.decrypt(bytes(note.content)).decode()
         final_dec_note = {'id':note.id, 'title':dec_title, 'content': dec_content, 'date_posted': note.date_posted, 'user_id': user }
         notelist.append(final_dec_note)
     return notelist
 
 def decrypt_single_note(note, user):
-    key = note.key
+    key = bytes(note.key)# convert the memoryview type to bytes
     f = Fernet(key)
-    dec_title = f.decrypt(note.title).decode()
-    dec_content = f.decrypt(note.content).decode()
+    dec_title = f.decrypt(bytes(note.title)).decode()# convert the memoryview type to bytes and decrypt it and decode the byte to string
+    dec_content = f.decrypt(bytes(note.content)).decode()
     final_dec_note = {'id':note.id, 'title':dec_title, 'content': dec_content, 'date_posted': note.date_posted, 'user_id': user }
     return final_dec_note

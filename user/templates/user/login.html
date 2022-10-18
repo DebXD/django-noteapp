@@ -16,6 +16,8 @@
       </div>
       <div style="text-align: center; margin-top: 10px;">
       <p>Don't have an Account! <a href="{% url 'register' %}">Sign Up</a></p>
+      <p>OR</p>
+      <button><a href="{% url 'social:begin' 'github' %}">Sign In with Github</a></button>
       </div>
   </form>
 

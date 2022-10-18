@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-from ensurepip import bootstrap
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-zjn5tvi=3^g3=tbn#l09*ecog7&xpf(qc!9l+)zda49tu%pntb'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'note.apps.NoteConfig',
     'user.apps.UserConfig',
-    'crispy_forms'
+    'crispy_forms',
+    'debug_toolbar',
+    'social_django',
 ]
 
 MIDDLEWARE = [
@@ -51,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = 'notemy.urls'
@@ -66,6 +69,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect'
             ],
         },
     },
@@ -79,11 +84,27 @@ WSGI_APPLICATION = 'notemy.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DATABASE'),
+        'USER': 'notemydj_willwidely',
+        'PASSWORD': config('PASSWORD'),
+        'HOST': config('HOST'),
+        'PORT': config('PORT'),
+  }
     }
-}
 
+
+
+#DATABASES = {
+    #'default': {
+      #  'ENGINE': 'django.db.backends.postgresql_psycopg2',
+       #'NAME': 'xgbmsaze',
+       # 'USER': 'xgbmsaze',
+       # 'PASSWORD': 'ygMUF8WqbnjDlzAt36Y2c4Ka-Y2rdFSl',
+       # 'HOST':'jelani.db.elephantsql.com',
+       # 'PORT': '5432'
+  # }
+#}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -139,4 +160,19 @@ PASSWORD_HASHERS = [
 
 LOGIN_REDIRECT_URL = 'home'
 
-ALLOWED_HOSTS = [ '127.0.0.1', '192.168.0.195', 'localhost']
+
+INTERNAL_IPS = [
+    # ...
+    "127.0.0.1",
+    # ...
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.github.GithubOAuth2',
+    
+    'django.contrib.auth.backends.ModelBackend',]
+
+SOCIAL_AUTH_GITHUB_KEY = config('GITHUB_KEY')
+SOCIAL_AUTH_GITHUB_SECRET = config('GITHUB_SECRET')

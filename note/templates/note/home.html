@@ -6,12 +6,8 @@
 {% block content %}
   {% if user.is_authenticated %}
     {% for note in notes %}
-      {% if note.title is '' %}
-      <div><p>No Notes</p></div>
-        
-      {% else %}
           <div class="card border-secondary mb-3 text-white" style=" max-width: 70rem; margin:auto; padding: 10px; top: 10px;">
-                <a href="{% url 'note-detail' note.id %}">
+            <a href="{% url 'note-detail' note.id %}">
               <div class="card-header">
               {% if note.title is not None %}
                 <div class="card-title" style="font-size : 18px; font-weight: bold;">{{ note.title }}</div>
@@ -24,7 +20,7 @@
               </a>
             </div>
             
-      {% endif %}
+
     {% endfor %}
     
   {% endif %}
